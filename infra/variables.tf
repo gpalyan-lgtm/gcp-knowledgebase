@@ -32,3 +32,27 @@ variable "db_name" {
   type        = string
   default     = "knowledgebase_db"
 }
+
+variable "sync_job_image" {
+  description = "The container image for the daily sync job."
+  type        = string
+  default     = "gcr.io/cloud-run/hello" # Placeholder - Replace with your actual sync job image
+}
+
+variable "api_service_image" {
+  description = "The container image for the knowledgebase API service."
+  type        = string
+  default     = "gcr.io/cloud-run/hello" # Placeholder - Replace with your actual API service image
+}
+
+variable "cloud_sql_proxy_image" {
+  description = "The container image for the Cloud SQL proxy."
+  type        = string
+  default     = "gcr.io/cloud-sql-connectors/cloud-sql-proxy:latest"
+}
+
+variable "chatbot_service_account_email" {
+  description = "The full email of the service account from the external chatbot project that is allowed to invoke the API."
+  type        = string
+  default     = "chatbot-client-sa@project-3.iam.gserviceaccount.com" # Placeholder
+}

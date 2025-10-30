@@ -92,3 +92,11 @@ resource "google_sql_database" "default" {
   instance = google_sql_database_instance.default.name
 }
 
+# Create a dedicated user for the application
+resource "google_sql_user" "app_user" {
+  provider = google.project_kb
+  name     = "kb_app_user"
+  instance = google_sql_database_instance.default.name
+  password = random_password.db_password.result
+}
+

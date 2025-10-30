@@ -6,18 +6,43 @@ resource "google_cloud_run_v2_job" "sync_job" {
 
   template {
     template {
-      service_account = "sync-job-sa@project-2.iam.gserviceaccount.com"
+      service_account = google_service_account.sync_job_sa.email
       containers {
         name  = "sync-app-container"
-        image = "gcr.io/cloud-run/hello" # Placeholder
+        image = var.sync_job_image
         env {
           name  = "DB_HOST"
           value = "127.0.0.1"
         }
+        env {
+          name  = "DB_USER"
+          value = google_sql_user.app_user.name
+        }
+        env {
+          name = "DB_PASSWORD"
+          value_source {
+            secret_key_ref {
+              secret  = google_secret_manager_secret.db_password_secret.secret_id
+              version = "latest"
+            }
+          }
+        }
+        env {
+          name  = "DB_NAME"
+          value = google_sql_database.default.name
+        }
+        env {
+          name  = "GCP_PROJECT_ID"
+          value = var.project_id
+        }
+        env {
+          name  = "GCP_REGION"
+          value = var.gcp_region
+        }
       }
       containers {
         name    = "cloud-sql-proxy"
-        image   = "gcr.io/cloud-sql-connectors/cloud-sql-proxy:latest"
+        image   = var.cloud_sql_proxy_image
         command = ["/cloud-sql-proxy", "--structured-logs", "--port=5432", google_sql_database_instance.default.connection_name]
       }
       vpc_access {
@@ -35,6 +60,13 @@ resource "google_service_account" "api_sa" {
   provider     = google.project_kb
   account_id   = "kb-api-service-sa"
   display_name = "Service Account for Knowledgebase API"
+}
+
+# Dedicated Service Account for the Daily Sync Job
+resource "google_service_account" "sync_job_sa" {
+  provider     = google.project_kb
+  account_id   = "kb-sync-job-sa"
+  display_name = "Service Account for Daily Sync Job"
 }
 
 # Grant the API's own SA the Cloud SQL Client role
@@ -55,14 +87,14 @@ resource "google_cloud_run_v2_service" "api_service" {
     service_account = google_service_account.api_sa.email
     containers {
       name  = "api-app-container"
-      image = "gcr.io/cloud-run/hello" # Placeholder: Replace with your API image
+      image = var.api_service_image
       env {
         name  = "DB_HOST"
         value = "127.0.0.1"
       }
       env {
         name  = "DB_USER"
-        value = "postgres"
+        value = google_sql_user.app_user.name
       }
       env {
         name = "DB_PASSWORD"
@@ -88,7 +120,7 @@ resource "google_cloud_run_v2_service" "api_service" {
     }
     containers {
       name    = "cloud-sql-proxy"
-      image   = "gcr.io/cloud-sql-connectors/cloud-sql-proxy:latest"
+      image   = var.cloud_sql_proxy_image
       command = ["/cloud-sql-proxy", "--structured-logs", "--port=5432", google_sql_database_instance.default.connection_name]
     }
     vpc_access {
@@ -100,13 +132,12 @@ resource "google_cloud_run_v2_service" "api_service" {
 
 # --- IAM Bindings for External Service Accounts ---
 
-# Grant Cloud SQL Client & BQ Viewer to the Sync Job SA
-resource "google_project_iam_member" "sync_job_permissions" {
-  for_each = toset(["roles/cloudsql.client", "roles/bigquery.dataViewer"])
+# Grant Cloud SQL Client to the Sync Job SA
+resource "google_project_iam_member" "sync_job_sql_client" {
   provider = google.project_kb
   project  = google_project.knowledgebase_project.project_id
-  role     = each.key
-  member   = "serviceAccount:sync-job-sa@project-2.iam.gserviceaccount.com"
+  role     = "roles/cloudsql.client"
+  member   = "serviceAccount:${google_service_account.sync_job_sa.email}"
 }
 
 # Grant the external Chatbot SA from Project 3 permission to invoke our new API service
@@ -116,5 +147,5 @@ resource "google_cloud_run_v2_service_iam_member" "chatbot_client_api_invoker" {
   location = google_cloud_run_v2_service.api_service.location
   name     = google_cloud_run_v2_service.api_service.name
   role     = "roles/run.invoker"
-  member   = "serviceAccount:chatbot-client-sa@project-3.iam.gserviceaccount.com"
+  member   = var.chatbot_service_account_email
 }
