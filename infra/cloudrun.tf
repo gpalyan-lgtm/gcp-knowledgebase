@@ -69,11 +69,12 @@ resource "google_service_account" "sync_job_sa" {
   display_name = "Service Account for Daily Sync Job"
 }
 
-# Grant the API's own SA the Cloud SQL Client role
-resource "google_project_iam_member" "api_sql_client" {
+# Grant the API's own SA the Cloud SQL Client and Vertex AI User roles
+resource "google_project_iam_member" "api_sa_permissions" {
+  for_each = toset(["roles/cloudsql.client", "roles/aiplatform.user"])
   provider = google.project_kb
   project  = google_project.knowledgebase_project.project_id
-  role     = "roles/cloudsql.client"
+  role     = each.key
   member   = "serviceAccount:${google_service_account.api_sa.email}"
 }
 

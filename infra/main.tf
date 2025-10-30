@@ -73,6 +73,11 @@ resource "google_sql_database_instance" "default" {
   settings {
     tier = "db-f1-micro" # Start with a low-cost tier; upgrade as needed
 
+    database_flags {
+      name  = "cloudsql.extensions"
+      value = "pgvector"
+    }
+
     # No public IP, access is managed via Cloud SQL Auth Proxy
     ip_configuration {
       ipv4_enabled = false
