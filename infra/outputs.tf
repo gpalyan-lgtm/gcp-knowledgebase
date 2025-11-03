@@ -39,3 +39,8 @@ output "api_service_account_email" {
   description = "The service account email for the main API service."
   value       = google_service_account.api_sa.email
 }
+
+output "cloud_run_service_url" {
+  description = "The URL of the Cloud Run service."
+  value       = google_cloud_run_v2_service.chat_bot_service.uri
+}

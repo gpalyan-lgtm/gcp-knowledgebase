@@ -50,9 +50,3 @@ variable "cloud_sql_proxy_image" {
   type        = string
   default     = "gcr.io/cloud-sql-connectors/cloud-sql-proxy:latest"
 }
-
-variable "chatbot_service_account_email" {
-  description = "The full email of the service account from the external chatbot project that is allowed to invoke the API."
-  type        = string
-  default     = "chatbot-client-sa@project-3.iam.gserviceaccount.com" # Placeholder
-}

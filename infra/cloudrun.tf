@@ -141,12 +141,12 @@ resource "google_project_iam_member" "sync_job_sql_client" {
   member   = "serviceAccount:${google_service_account.sync_job_sa.email}"
 }
 
-# Grant the external Chatbot SA from Project 3 permission to invoke our new API service
+# Grant the Chatbot SA permission to invoke our API service
 resource "google_cloud_run_v2_service_iam_member" "chatbot_client_api_invoker" {
   provider = google.project_kb
   project  = google_cloud_run_v2_service.api_service.project
   location = google_cloud_run_v2_service.api_service.location
   name     = google_cloud_run_v2_service.api_service.name
   role     = "roles/run.invoker"
-  member   = var.chatbot_service_account_email
+  member   = google_service_account.chat_bot_sa.email
 }

@@ -32,7 +32,10 @@ locals {
     "vpcaccess.googleapis.com",           # Required for VPC Connector
     "cloudscheduler.googleapis.com",      # Cloud Scheduler
     "secretmanager.googleapis.com",     # Secret Manager
-    "aiplatform.googleapis.com"           # Vertex AI (Embeddings, Gemini)
+    "aiplatform.googleapis.com",           # Vertex AI (Embeddings, Gemini)
+    "iam.googleapis.com",
+    "cloudbuild.googleapis.com",
+    "appsmarket-component.googleapis.com"
   ]
 }
 
@@ -103,5 +106,40 @@ resource "google_sql_user" "app_user" {
   name     = "kb_app_user"
   instance = google_sql_database_instance.default.name
   password = random_password.db_password.result
+}
+
+# ----------------------------------------------------------
+# 3. CHATBOT RESOURCES
+# ----------------------------------------------------------
+
+resource "google_service_account" "chat_bot_sa" {
+  account_id   = "chat-bot-sa"
+  display_name = "Chat Bot Service Account"
+}
+
+resource "google_cloud_run_v2_service" "chat_bot_service" {
+  name     = "google-chat-bot"
+  location = var.region
+  template {
+    containers {
+      image = "gcr.io/${var.project_id}/google-chat-bot"
+      ports {
+        container_port = 8080
+      }
+      env {
+        name  = "WEBHOOK_URL"
+        value = var.webhook_url
+      }
+      env {
+        name  = "N8N_USER"
+        value = var.n8n_user
+      }
+      env {
+        name  = "N8N_PASSWORD"
+        value = var.n8n_password
+      }
+    }
+    service_account = google_service_account.chat_bot_sa.email
+  }
 }
 
