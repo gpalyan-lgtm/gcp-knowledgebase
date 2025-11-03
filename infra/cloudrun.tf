@@ -70,11 +70,20 @@ resource "google_service_account" "sync_job_sa" {
 }
 
 # Grant the API's own SA the Cloud SQL Client and Vertex AI User roles
-resource "google_project_iam_member" "api_sa_permissions" {
-  for_each = toset(["roles/cloudsql.client", "roles/aiplatform.user"])
+
+
+resource "google_sql_database_instance_iam_member" "api_sa_sql_client" {
+  provider = google.project_kb
+  project  = google_sql_database_instance.default.project
+  instance = google_sql_database_instance.default.name
+  role     = "roles/cloudsql.client"
+  member   = "serviceAccount:${google_service_account.api_sa.email}"
+}
+
+resource "google_project_iam_member" "api_sa_ai_user" {
   provider = google.project_kb
   project  = google_project.knowledgebase_project.project_id
-  role     = each.key
+  role     = "roles/aiplatform.user"
   member   = "serviceAccount:${google_service_account.api_sa.email}"
 }
 
@@ -133,20 +142,33 @@ resource "google_cloud_run_v2_service" "api_service" {
 
 # --- IAM Bindings for External Service Accounts ---
 
-# Grant Cloud SQL Client to the Sync Job SA
-resource "google_project_iam_member" "sync_job_sql_client" {
+# Grant Cloud SQL Client to the Sync Job SA on the specific instance
+resource "google_sql_database_instance_iam_member" "sync_job_sql_client" {
   provider = google.project_kb
-  project  = google_project.knowledgebase_project.project_id
+  project  = google_sql_database_instance.default.project
+  instance = google_sql_database_instance.default.name
   role     = "roles/cloudsql.client"
   member   = "serviceAccount:${google_service_account.sync_job_sa.email}"
 }
 
-# Grant the external Chatbot SA from Project 3 permission to invoke our new API service
+# TODO: Scope these permissions to the specific BigQuery dataset instead of the whole project.
+resource "google_project_iam_member" "sync_job_permissions" {
+  for_each = toset([
+    "roles/bigquery.dataViewer",
+    "roles/bigquery.jobUser"
+  ])
+  provider = google.project_kb
+  project  = var.project_id
+  role     = each.key
+  member   = "serviceAccount:${google_service_account.sync_job_sa.email}"
+}
+
+# Grant the Chatbot SA permission to invoke our API service
 resource "google_cloud_run_v2_service_iam_member" "chatbot_client_api_invoker" {
   provider = google.project_kb
   project  = google_cloud_run_v2_service.api_service.project
   location = google_cloud_run_v2_service.api_service.location
   name     = google_cloud_run_v2_service.api_service.name
   role     = "roles/run.invoker"
-  member   = var.chatbot_service_account_email
+  member   = google_service_account.chat_bot_sa.email
 }

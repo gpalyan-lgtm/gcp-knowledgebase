@@ -5,11 +5,12 @@ resource "google_service_account" "sql_scheduler_sa" {
   display_name = "Service Account for DB Scheduler"
 }
 
-# Grant the service account Cloud SQL Editor role
-resource "google_project_iam_member" "sql_scheduler_iam" {
+# Grant the service account the custom role to manage the specific SQL instance
+resource "google_sql_database_instance_iam_member" "sql_scheduler_iam" {
   provider = google.project_kb
-  project  = google_project.knowledgebase_project.project_id
-  role     = "roles/cloudsql.editor"
+  project  = google_sql_database_instance.default.project
+  instance = google_sql_database_instance.default.name
+  role     = google_project_iam_custom_role.sql_instance_scheduler_role.id
   member   = "serviceAccount:${google_service_account.sql_scheduler_sa.email}"
 }
 
@@ -41,7 +42,7 @@ resource "google_cloud_run_v2_job_iam_member" "scheduler_invoker" {
   project  = google_cloud_run_v2_job.sync_job.project
   location = google_cloud_run_v2_job.sync_job.location
   name     = google_cloud_run_v2_job.sync_job.name
-  role     = "roles/run.invoker"
+  role     = "roles/run.jobRunner"
   member   = "serviceAccount:${google_service_account.sql_scheduler_sa.email}"
 }
 
@@ -55,12 +56,15 @@ resource "google_cloud_scheduler_job" "trigger_sync_job" {
 
   http_target {
     http_method = "POST"
-    uri         = "${google_cloud_run_v2_job.sync_job.uri}/executions"
+    uri         = "https://${google_cloud_run_v2_job.sync_job.location}-run.googleapis.com/v2/${google_cloud_run_v2_job.sync_job.id}:run"
 
     oidc_token {
       service_account_email = google_service_account.sql_scheduler_sa.email
     }
   }
 
-  depends_on = [google_cloud_run_v2_job_iam_member.scheduler_invoker]
+  depends_on = [
+    google_cloud_run_v2_job_iam_member.scheduler_invoker,
+    google_cloud_run_v2_job.sync_job,
+  ]
 }

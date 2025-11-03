@@ -21,5 +21,29 @@ resource "google_secret_manager_secret_version" "db_password_version" {
   provider      = google.project_kb
   secret        = google_secret_manager_secret.db_password_secret.id
   secret_data   = random_password.db_password.result
-  is_secret_data = true
+}
+
+# --- Chatbot Secrets ---
+resource "google_secret_manager_secret" "webhook_url" {
+  provider  = google.project_kb
+  secret_id = "chatbot-webhook-url"
+  replication {
+    automatic = true
+  }
+}
+
+resource "google_secret_manager_secret" "n8n_user" {
+  provider  = google.project_kb
+  secret_id = "n8n-user"
+  replication {
+    automatic = true
+  }
+}
+
+resource "google_secret_manager_secret" "n8n_password" {
+  provider  = google.project_kb
+  secret_id = "n8n-password"
+  replication {
+    automatic = true
+  }
 }

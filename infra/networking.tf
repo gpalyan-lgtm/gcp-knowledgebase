@@ -23,7 +23,7 @@ resource "google_vpc_access_connector" "main" {
     name = google_compute_subnetwork.vpc_connector_subnet.name
   }
   machine_type = "e2-micro"
-  depends_on = [google_project_service.default] # Depends on vpcaccess.googleapis.com
+  depends_on = [google_project_service.default["vpcaccess.googleapis.com"]]
 }
 
 # Reserve a static external IP address
