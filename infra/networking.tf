@@ -52,11 +52,35 @@ resource "google_compute_router_nat" "main" {
     filter = "ERRORS_ONLY"
   }
 
+  source_subnetwork_ip_ranges_to_nat = "ALL_IP_RANGES"
   subnetwork {
-    name                    = google_compute_subnetwork.vpc_connector_subnet.id
+    name = google_compute_subnetwork.vpc_connector_subnet.id
     source_ip_ranges_to_nat = ["ALL_IP_RANGES"]
   }
 
   nat_ip_allocate_option = "MANUAL_ONLY"
   nat_ips                = [google_compute_address.static_ip.self_link]
+}
+
+resource "google_compute_firewall" "deny-all-ingress" {
+  provider = google.project_kb
+  name    = "deny-all-ingress"
+  network = google_compute_network.main.name
+  direction = "INGRESS"
+  deny {
+    protocol = "all"
+  }
+  source_ranges = ["0.0.0.0/0"]
+}
+
+resource "google_compute_firewall" "allow-limited-egress" {
+  provider = google.project_kb
+  name    = "allow-limited-egress"
+  network = google_compute_network.main.name
+  direction = "EGRESS"
+  allow {
+    protocol = "tcp"
+    ports    = ["443"]
+  }
+  destination_ranges = ["0.0.0.0/0"]
 }

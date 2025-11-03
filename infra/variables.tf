@@ -52,7 +52,6 @@ variable "cloud_sql_proxy_image" {
 }
 
 variable "bigquery_source_project_id" {
-  description = "The project ID of the BigQuery source project."
+  description = "The project ID of the BigQuery source project. This must be provided."
   type        = string
-  default     = "your-bigquery-source-project-id" # Replace with actual BigQuery source project ID
 }

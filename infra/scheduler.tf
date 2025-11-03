@@ -6,12 +6,17 @@ resource "google_service_account" "sql_scheduler_sa" {
 }
 
 # Grant the service account the custom role to manage the specific SQL instance
-resource "google_sql_database_instance_iam_member" "sql_scheduler_iam" {
+resource "google_project_iam_member" "sql_scheduler_iam" {
   provider = google.project_kb
   project  = google_sql_database_instance.default.project
-  instance = google_sql_database_instance.default.name
   role     = google_project_iam_custom_role.sql_instance_scheduler_role.id
   member   = "serviceAccount:${google_service_account.sql_scheduler_sa.email}"
+
+  condition {
+    title       = "sql_instance_scheduler_condition"
+    description = "Grants the role on a specific Cloud SQL instance"
+    expression  = "resource.type == 'cloudsql.googleapis.com/Instance' && resource.name == '${google_sql_database_instance.default.name}'"
+  }
 }
 
 # Scheduler job to start the database instance

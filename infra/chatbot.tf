@@ -1,4 +1,3 @@
-
 resource "google_service_account" "chat_bot_sa" {
   provider = google.project_kb
   account_id   = "chat-bot-sa"
@@ -9,6 +8,9 @@ resource "google_cloud_run_v2_service" "chat_bot_service" {
   provider = google.project_kb
   name     = "google-chat-bot"
   location = var.gcp_region
+  # TODO: Clarify ingress setting. Default is INGRESS_TRAFFIC_ALL (public). 
+  # If only invoked by Google Chat, this might be appropriate, but ensure proper authentication. 
+  # If strictly internal, consider INGRESS_TRAFFIC_INTERNAL_ONLY.
   template {
     containers {
       image = "gcr.io/${var.project_id}/google-chat-bot"

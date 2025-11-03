@@ -30,7 +30,8 @@ locals {
     "aiplatform.googleapis.com",           # Vertex AI (Embeddings, Gemini)
     "iam.googleapis.com",
     "cloudbuild.googleapis.com",
-    "appsmarket-component.googleapis.com"
+    "appsmarket-component.googleapis.com",
+    "chat.googleapis.com"
   ]
 }
 

@@ -39,6 +39,10 @@ resource "google_cloud_run_v2_job" "sync_job" {
           name  = "GCP_REGION"
           value = var.gcp_region
         }
+        env {
+          name  = "BIGQUERY_SOURCE_PROJECT_ID"
+          value = var.bigquery_source_project_id
+        }
       }
       containers {
         name    = "cloud-sql-proxy"
@@ -72,18 +76,38 @@ resource "google_service_account" "sync_job_sa" {
 # Grant the API's own SA the Cloud SQL Client and Vertex AI User roles
 
 
-resource "google_sql_database_instance_iam_member" "api_sa_sql_client" {
+resource "google_project_iam_member" "api_sa_sql_client" {
   provider = google.project_kb
   project  = google_sql_database_instance.default.project
-  instance = google_sql_database_instance.default.name
   role     = "roles/cloudsql.client"
   member   = "serviceAccount:${google_service_account.api_sa.email}"
+
+  condition {
+    title       = "api_sa_sql_client_condition"
+    description = "Grants the role on a specific Cloud SQL instance"
+    expression  = "resource.type == 'cloudsql.googleapis.com/Instance' && resource.name == '${google_sql_database_instance.default.name}'"
+  }
+}
+
+
+
+resource "google_project_iam_member" "sync_job_sql_client" {
+  provider = google.project_kb
+  project  = google_sql_database_instance.default.project
+  role     = "roles/cloudsql.client"
+  member   = "serviceAccount:${google_service_account.sync_job_sa.email}"
+
+  condition {
+    title       = "sync_job_sql_client_condition"
+    description = "Grants the role on a specific Cloud SQL instance"
+    expression  = "resource.type == 'cloudsql.googleapis.com/Instance' && resource.name == '${google_sql_database_instance.default.name}'"
+  }
 }
 
 resource "google_project_iam_member" "api_sa_ai_user" {
   provider = google.project_kb
   project  = google_project.knowledgebase_project.project_id
-  role     = "roles/aiplatform.user"
+  role     = "roles/aiplatform.endpointUser"
   member   = "serviceAccount:${google_service_account.api_sa.email}"
 }
 
@@ -91,7 +115,7 @@ resource "google_cloud_run_v2_service" "api_service" {
   provider = google.project_kb
   name     = "knowledgebase-api-service"
   location = var.gcp_region
-  ingress  = "INGRESS_TRAFFIC_ALL" # Allows public access, secured by IAM
+  ingress  = "INGRESS_TRAFFIC_INTERNAL_ONLY" # Allows internal access only, secured by IAM
 
   template {
     service_account = google_service_account.api_sa.email
@@ -143,13 +167,7 @@ resource "google_cloud_run_v2_service" "api_service" {
 # --- IAM Bindings for External Service Accounts ---
 
 # Grant Cloud SQL Client to the Sync Job SA on the specific instance
-resource "google_sql_database_instance_iam_member" "sync_job_sql_client" {
-  provider = google.project_kb
-  project  = google_sql_database_instance.default.project
-  instance = google_sql_database_instance.default.name
-  role     = "roles/cloudsql.client"
-  member   = "serviceAccount:${google_service_account.sync_job_sa.email}"
-}
+
 
 # TODO: Scope these permissions to the specific BigQuery dataset instead of the whole project.
 resource "google_project_iam_member" "sync_job_permissions" {
@@ -158,7 +176,7 @@ resource "google_project_iam_member" "sync_job_permissions" {
     "roles/bigquery.jobUser"
   ])
   provider = google.project_kb
-  project  = var.project_id
+  project  = var.bigquery_source_project_id # TODO: Scope these permissions to the specific BigQuery dataset instead of the whole project.
   role     = each.key
   member   = "serviceAccount:${google_service_account.sync_job_sa.email}"
 }
