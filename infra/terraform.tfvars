@@ -1,5 +1,5 @@
 # The ID of the Billing Account
-billing_account_id = "billing_account"
+# billing_account_id = "YOUR_BILLING_ACCOUNT_ID"
 
 # A globally unique ID for the new Google Cloud project.
 # Must contain only lowercase letters, numbers, and hyphens.

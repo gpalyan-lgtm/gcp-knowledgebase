@@ -12,11 +12,6 @@ terraform {
   }
 }
 
-# 1. CREATE AND CONFIGURE GCP PROJECT
-
-provider "google" {
-}
-
 resource "google_project" "knowledgebase_project" {
   project_id = var.project_id
   name       = var.project_name
@@ -32,7 +27,11 @@ locals {
     "vpcaccess.googleapis.com",           # Required for VPC Connector
     "cloudscheduler.googleapis.com",      # Cloud Scheduler
     "secretmanager.googleapis.com",     # Secret Manager
-    "aiplatform.googleapis.com"           # Vertex AI (Embeddings, Gemini)
+    "aiplatform.googleapis.com",           # Vertex AI (Embeddings, Gemini)
+    "iam.googleapis.com",
+    "cloudbuild.googleapis.com",
+    "appsmarket-component.googleapis.com",
+    "chat.googleapis.com"
   ]
 }
 
@@ -48,9 +47,7 @@ resource "google_project_service" "default" {
   disable_on_destroy = false
 }
 
-# ----------------------------------------------------------
 # 2. CREATE CLOUD SQL INSTANCE WITH POSTGRESQL
-# ----------------------------------------------------------
 
 # Provider configured to use the newly created project
 provider "google" {
@@ -104,4 +101,3 @@ resource "google_sql_user" "app_user" {
   instance = google_sql_database_instance.default.name
   password = random_password.db_password.result
 }
-

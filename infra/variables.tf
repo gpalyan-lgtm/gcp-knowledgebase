@@ -36,13 +36,13 @@ variable "db_name" {
 variable "sync_job_image" {
   description = "The container image for the daily sync job."
   type        = string
-  default     = "gcr.io/cloud-run/hello" # Placeholder - Replace with your actual sync job image
+  default     = "gcr.io/kb-application-project/sync-job:latest" 
 }
 
 variable "api_service_image" {
   description = "The container image for the knowledgebase API service."
   type        = string
-  default     = "gcr.io/cloud-run/hello" # Placeholder - Replace with your actual API service image
+  default     = "gcr.io/kb-application-project/api-service:latest" 
 }
 
 variable "cloud_sql_proxy_image" {
@@ -51,8 +51,7 @@ variable "cloud_sql_proxy_image" {
   default     = "gcr.io/cloud-sql-connectors/cloud-sql-proxy:latest"
 }
 
-variable "chatbot_service_account_email" {
-  description = "The full email of the service account from the external chatbot project that is allowed to invoke the API."
+variable "bigquery_source_project_id" {
+  description = "The project ID of the BigQuery source project. This must be provided."
   type        = string
-  default     = "chatbot-client-sa@project-3.iam.gserviceaccount.com" # Placeholder
 }
